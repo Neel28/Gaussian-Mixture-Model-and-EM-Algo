@@ -1,0 +1,17 @@
+function label = closestCentroid(data,c)
+    
+    k=size(c,1);
+    m=length(data);
+    label=zeros(m,1);
+    
+    for i=1:m
+       min=Inf;
+       for j=1:k
+           if norm(data(i,:)-c(j,:))^2 < min
+               min=norm(data(i,:)-c(j,:))^2;
+               label(i,1)=j;
+           end
+       end
+    end
+
+end

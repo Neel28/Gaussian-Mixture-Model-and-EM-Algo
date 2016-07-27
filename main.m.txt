@@ -1,0 +1,177 @@
+function [fin] = main()
+    load data2
+    load points
+    load dataTr
+    load dataVal
+    %
+    figure
+    fig_count=1;
+    k=[2,3,5];
+    color=['r','g','b','c','m'];
+    for l=1:length(k)
+        pl=main_1(data2,k(l));
+        %plot
+        subplot(2,3,fig_count)
+        for i=1:length(data2)
+            scatter(data2(i,1),data2(i,2),color(pl(i)));
+            hold on
+        end
+        fig_count=fig_count+1;
+    end
+    
+    k=[2,3,5];
+    color=['r','g','b','c','m'];
+    for l=1:length(k)
+        [pl,centroid]=main_1(points,k(l));
+        %plot
+        subplot(2,3,fig_count)
+        for i=1:length(points)
+            scatter(points(i,1),points(i,2),color(pl(i)));
+            hold on;
+        end
+        fig_count=fig_count+1;
+    end
+    %}
+    %
+    % 4.3
+    rgb=double(imread('hw4.jpg'));
+    rgb=rgb/255;
+    img_size=size(rgb);
+    d = reshape(rgb, img_size(1) * img_size(2), 3);
+    
+    k=[8];
+    for l=1:length(k)
+        [pl,centroid]=main_1(d,k(l));
+        id=closestCentroid(d,centroid);
+        mod_rgb=centroid(id,:);
+        mod_rgb = reshape(mod_rgb, img_size(1), img_size(2), 3);
+        imagesc(mod_rgb)
+    end
+    %}
+    %
+    % 4.2
+    ll=zeros(5,5);
+    k=[3,5,7,9,11];
+    figure
+    for i=1:length(k)
+        for q=1:5
+            [res singular] = gmm(dataTr,k(i));
+            while singular==1
+                [res singular] = gmm(dataTr,k(i));
+            end
+            fin{i,q}=res;
+            if q==1
+                if i==1
+                    subplot(2,3,1)
+                    plotting(dataTr,res,k(i))
+                    hold on
+                elseif i==2
+                    subplot(2,3,2)
+                    plotting(dataTr,res,k(i))
+                    hold on
+                elseif i==3
+                    subplot(2,3,3)
+                    plotting(dataTr,res,k(i))
+                    hold on
+                elseif i==4
+                    subplot(2,3,4)
+                    plotting(dataTr,res,k(i))
+                    hold on
+                else
+                    subplot(2,3,5)
+                    plotting(dataTr,res,k(i))
+                end
+            end
+        end
+    end
+    ll = test(fin,dataTr,k);
+    % testing on heldout data
+    heldout_ll=test(fin,dataVal,k);
+    [maxVal,index]=max(heldout_ll,[],2);
+    disp('Best log likelihood on heldout data for k=3,5,7,9,11 : ')
+    maxVal
+    disp('Best log likelihood on training data for k=3,5,7,9,11 : ')
+    for it=1:5
+        ll(it,index(it,1))
+    end
+    disp('The number of iterations till convergence : ')
+    for it=1:5
+        fin{it,index{it}}(1,5)
+    end
+    [best,best_k]=sort(maxVal);
+    disp('Components to be selected : ')
+    k(1,best_k(5))
+end
+    
+    function plotting(dataTr,res,kval)
+        [~,i]=max(res{1},[],2);
+        k=7;
+        color1=['y','m','c','r','g','b','k'];
+        color2={[1 0.5 0.6],[0 1 0.2],[0.2 0.2 0.2],[0.8 0.8 1]};
+        for j=1:length(i)
+            if i(j)<=7
+                scatter(dataTr(j,1),dataTr(j,2),color1(i(j)))
+                hold on
+            else
+                scatter(dataTr(j,1),dataTr(j,2),'MarkerFaceColor',color2{1,i(j)-7})
+                hold on
+            end
+        end
+
+        % plotting contour lines
+        gridSize = 100;
+        u = linspace(-2, 8, gridSize);
+        [A B] = meshgrid(u, u);
+        gridX = [A(:), B(:)];
+        % Calculate the Gaussian response for every value in the grid.
+        for j=1:kval
+            z{1,j}=gaussian(gridX,res{3}(j,:),res{4}{1,j});
+        end
+        % Reshape the responses back into a 2D grid to be plotted with contour.
+        for j=1:kval
+            Z{1,j}=reshape(z{1,j},gridSize,gridSize);
+        end
+        % Plot the contour lines to show the pdf over the data.
+        for j=1:kval
+           contour(u,u,Z{1,j}) 
+           %axis([-6 6 -6 6])
+        end
+    end
+    
+    function ans = log_likelihood(fin,kval)
+        for i=1:5
+            for j=1:5
+                s=sum(cell2mat(fin{i,j}(1,1)),2);
+                ans(i,j)=sum(log(s));
+            end
+        end
+    end
+    
+    function ans = test(fin,dataVal,kval);
+        [m n] = size(dataVal);
+        k_len=length(kval);
+        ans=zeros(5,5);
+        for i=1:5
+            for j=1:5
+                mu=cell2mat(fin{i,j}(1,3));
+                phi=cell2mat(fin{i,j}(1,2));
+                sum_rows = zeros(m,1);
+                for rows=1:m
+                    a=0;
+                    for k=1:kval(1,i)
+                       a = a+gaussian(dataVal(rows,:),mu(k,:),cell2mat(fin{i,j}{1,4}(1,k)))*phi(1,k); 
+                    end
+                    sum_rows(rows,1)=a;
+                end
+                ans(i,j)=sum(log(sum_rows));
+            end
+        end
+        
+    end
+   
+
+
+    
+    
+    
+    

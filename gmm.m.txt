@@ -1,0 +1,63 @@
+function [res singular] =  gmm(data,k)
+
+    [m n]=size(data);
+    rd = randperm(m,k);
+    mu=data(rd,:)
+    singular=0;
+    sigma=[];
+    
+    for i=1:k
+        sigma{i}=cov(data);
+    end
+    %assigning initial equal probabilities 
+    phi = ones(1, k) * (1 / k);
+    
+    % Matrix to hold the probability that each data point belongs to each cluster.
+    % One row per data point, one column per cluster.
+    w = zeros(m, k);
+    flag=1;
+    iter=1;
+    while flag
+       % Expectation step
+       % Calculate the probability for each data point for each distribution.
+       pdf=zeros(m, k);
+       
+       % determine gaussian for all data points of clusters 1:k
+       for i=1:k
+            pdf(:,i)=gaussian(data,mu(i,:),sigma{i});
+       end
+       % multiply each above pdf with the prior probability phi
+       pdf_fin = bsxfun(@times, pdf, phi);
+       % divide the above weighted prob with sum of prob for each cluster
+       w = bsxfun(@rdivide, pdf_fin, sum(pdf_fin, 2));
+       
+       % Maximization step
+       mu_old=mu;
+       for i=1:k
+           % new phi
+           phi(i) = mean(w(:, i), 1);
+           % new mean
+           x = w(:,i)' * data;
+           x = x ./ sum(w(:,i));
+           mu(i, :) = x;
+           %new covariance
+           s=zeros(n,n);
+           sub = bsxfun(@minus, data, mu(i, :));
+           for p = 1 : m
+               s = s + (w(p, i) .* (sub(p, :)' * sub(p, :)));
+           end
+           sigma{i} = s ./ sum(w(:, i),1);
+           if det(sigma{i})==0
+               disp('SINGULAR MATRIX')
+               singular=1;
+               flag=0;
+           end
+       end
+       if norm(mu-mu_old)<1e-14
+           flag=0;
+       end
+       iter
+       iter=iter+1;
+    end
+    res={w,phi,mu,sigma,iter-1};
+end

@@ -1,0 +1,46 @@
+function [y_new,new_mu] = main_1(data,k)
+
+    [x y]=size(data);
+    rd = randperm(x,k);
+    mu=data(rd,:)
+    
+    y_old=zeros(x,1);
+    y_new=zeros(x,1);
+    flag=1;
+    
+    while(flag)
+        
+        for i=1:x
+            min=Inf;
+            for j=1:k
+                if norm(data(i,:)-mu(j,:))<min
+                    min=norm(data(i,:)-mu(j,:));
+                    label=j;
+                end
+            end
+            y_new(i,1)=label;
+        end
+        if y_new==y_old
+            flag=0;
+        else
+            %finding new mu
+            y_old=y_new;
+            count=zeros(k,1);
+            new_mu=zeros(k,y);
+            for i=1:x
+                c=y_new(i,1);
+                new_mu(c,:)=new_mu(c,:)+data(i,:);
+                count(c,1)=count(c,1)+1;
+            end
+            for i=1:k
+                new_mu(i,:)=new_mu(i,:)/count(i,1);
+            end
+        end
+    end
+    
+end
+
+
+
+
+
